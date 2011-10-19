@@ -1,0 +1,95 @@
+#!/bin/bash
+#       u413client
+#       
+#       Copyright 2011 James McClain <jamezmcclain@gmail.com>
+#       
+#       This program is free software; you can redistribute it and/or modify
+#       it under the terms of the GNU General Public License as published by
+#       the Free Software Foundation; either version 3 of the License, or
+#       (at your option) any later version.
+#       
+#       This program is distributed in the hope that it will be useful,
+#       but WITHOUT ANY WARRANTY; without even the implied warranty of
+#       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#       GNU General Public License for more details.
+#       
+#       You should have received a copy of the GNU General Public License
+#       along with this program; if not, write to the Free Software
+#       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+#       MA 02110-1301, USA.
+
+version="1.1"
+name="u413client_bash"
+author="James McClain"
+last_update="Tue Oct 18 2011 19:22:12 GMT-0700 (PDT)"
+u413_name="JamezQ"
+
+
+if [ -e ~/.u413client ];then #Check if file exist's
+    . ~/.u413client # If it does load it up, this will load the $SID var.
+fi
+parse(){ # The ultimate function, get a value from a key in JSON
+echo "$1" |sed 's/,["{]/\n"/g'|grep "\"$2\""| grep -o ':".*"' | sed 's/^:"//'\;'s/"$//'
+}
+replace(){ # Replace characters such as ' > and newlines to show right.
+echo "$1" | sed  's/\\n/\n/g'\;\
+'s/\\u003e/>/g'\;\
+"s/\\\u0027/'/g"
+
+}
+send(){ # Simply send arg as command in u413, giving SID if set.
+wget -qO- --user-agent=${name}/${version} "http://api.u413.com/(S($SID))/?cli=$1"
+}
+getNewSid(){ # Get a new SID and save it in the save file.
+SID=$(parse "$1" "SessionId")
+if [ -e ~/.u413client ];then
+    grep "SID=.*" ~/.u413client >/dev/null && 
+    sed -i "s/SID=.*/SID=$SID/" ~/.u413client || 
+    echo "SID=$SID" > ~/.u413client
+else
+    echo "SID=$SID" > ~/.u413client
+fi
+}
+if [ ! -z "$1" ];then #If u413client is given any arguments, execute them.
+    echo
+    cli="$*" # Send all arguments as if they were directed to the u413 prompt.
+    got="$(send "$cli")"
+    # if SID expired, then use the new one u413 sends.
+    if [ "$(parse "$got" "SessionId")"  != "$SID" ];then
+	unset SID
+    fi
+    # if we don't have a SID get one.
+    if [ ! -z "$SID" ];then
+	true
+    else
+	getNewSid "$got"
+    fi
+    ContextText="$(parse "$got" "ContextText")" #Set the value b4 the >
+    clear
+    replace "$(parse "$got" "Text")"
+    exit
+fi
+while true;do
+    echo
+    if [ ! "${ContextText+x}" = "x" ];then
+	ContextText="$(parse "$(send)" "ContextText")"
+    fi
+    read -ep "${ContextText}> " cli
+    got="$(send "$cli")"
+    # if SID expired, then use the new one u413 sends.
+    if [ "$(parse "$got" "SessionId")"  != "$SID" ];then
+	unset SID
+    fi
+    # if we don't have a SID get one.
+    if [ ! -z "$SID" ];then
+	true
+    else
+	getNewSid "$got"
+    fi
+    ContextText="$(parse "$got" "ContextText")"
+    clear
+    replace "$(parse "$got" "Text")"
+    
+done
+
+
