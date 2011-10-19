@@ -74,7 +74,11 @@ while true;do
     if [ ! "${ContextText+x}" = "x" ];then
 	ContextText="$(parse "$(send)" "ContextText")"
     fi
-    read -ep "${ContextText}> " cli
+    if [ "$ContextText" == "LOGIN Password" ];then
+	read -sep "${ContextText}> " cli
+    else
+	read -ep "${ContextText}> " cli
+    fi
     got="$(send "$cli")"
     # if SID expired, then use the new one u413 sends.
     if [ "$(parse "$got" "SessionId")"  != "$SID" ];then
