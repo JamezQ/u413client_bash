@@ -32,10 +32,7 @@ parse(){ # The ultimate function, get a value from a key in JSON
 echo "$1" |sed 's/,["{]/\n"/g'|grep "\"$2\""| grep -o ':".*"' | sed 's/^:"//'\;'s/"$//'
 }
 replace(){ # Replace characters such as ' > and newlines to show right.
-echo "$1" | sed  's/\\n/\n/g'\;\
-'s/\\u003e/>/g'\;\
-"s/\\\u0027/'/g"
-
+echo -e "$1"
 }
 send(){ # Simply send arg as command in u413, giving SID if set.
 wget -qO- --user-agent=${name}/${version} "http://api.u413.com/(S($SID))/?cli=$1"
